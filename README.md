@@ -1,3 +1,6 @@
+## Hello, this is just a super simple modification by me that replaces the BG images with Vista. I did not do much else, so there are definitely some inaccuracies because the original version is based on the Windows 7 lockscreen instead.
+
+
 # AuthUX
 
 **AuthUX** is a project based on [the ConsoleLogon decompilation](//github.com/explorer7-team/ConsoleLogon) which aims to replicate the Windows 7 logon screen.
