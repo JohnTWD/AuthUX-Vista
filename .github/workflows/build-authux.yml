@@ -1,0 +1,81 @@
+name: Build AuthUX
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: "AuthUX build variant"
+        required: true
+        default: "Release.VB"
+        type: choice
+        options:
+          - Release.RS5
+          - Release.19H1
+          - Release.VB
+          - Release.MN
+          - Release.FE
+          - Release.CO
+          - Release.NI
+          - Release.ZN
+          - Release.GE
+      platform:
+        description: "CPU architecture"
+        required: true
+        default: "x64"
+        type: choice
+        options:
+          - x64
+          - Win32
+          - ARM64
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          nuget restore AuthUX.sln
+
+      - name: Build AuthUX
+        shell: pwsh
+        run: |
+          msbuild AuthUX.sln `
+            /m `
+            /p:Configuration="${{ inputs.configuration }}" `
+            /p:Platform="${{ inputs.platform }}" `
+            /p:RestorePackagesConfig=true
+
+      - name: Stage output files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+
+          $files = Get-ChildItem -Path . -Recurse -File |
+            Where-Object {
+              ($_.Name -eq "AuthUX.dll" -or $_.Name -eq "AuthUX.pdb") -and
+              $_.FullName -notmatch "\\packages\\"
+            }
+
+          if (-not $files) {
+            throw "Could not find AuthUX.dll or AuthUX.pdb after build."
+          }
+
+          $files | Copy-Item -Destination artifacts -Force
+          Get-ChildItem artifacts
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuthUX-${{ inputs.configuration }}-${{ inputs.platform }}
+          path: artifacts/*
+          if-no-files-found: error
